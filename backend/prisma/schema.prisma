@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id               String          @id @default(uuid())
+  username         String          @unique
+  password         String
+  createdAt        DateTime        @default(now())
+  ownedRooms       Room[]          @relation("OwnerRooms")
+  rooms            RoomUser[]
+  examRecordings   ExamRecording[]
+}
+
+model Room {
+  id               String          @id @default(uuid())
+  name             String          @default("Untitled Room")
+  ownerId          String
+  owner            User            @relation("OwnerRooms", fields: [ownerId], references: [id])
+  users            RoomUser[]
+  createdAt        DateTime        @default(now())
+  snapshots        Snapshot[]
+  examRecordings   ExamRecording[]
+}
+
+model RoomUser {
+  id        String   @id @default(uuid())
+  role      String   @default("VIEWER")
+  userId    String
+  roomId    String
+  user      User     @relation(fields: [userId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id])
+
+  @@unique([userId, roomId])
+}
+
+model Snapshot {
+  id        String   @id @default(uuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String    @id @default(uuid())
+  eventType String    @map("event_type")
+  payload   String
+  createdAt DateTime  @default(now()) @map("created_at")
+}
+
+model ExamRecording {
+  id              String   @id @default(uuid())
+  roomId          String   @map("room_id")
+  userId          String   @map("user_id")
+  s3Url           String   @map("s3_url")
+  durationSeconds Int      @map("duration_seconds")
+  createdAt       DateTime @default(now()) @map("created_at")
+  room            Room     @relation(fields: [roomId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
